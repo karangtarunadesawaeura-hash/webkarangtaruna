@@ -145,6 +145,7 @@ npm start          # jalankan hasil build
 
 ## SEO & Performa
 
+
 Metadata dinamis (termasuk detail berita), sitemap (`/sitemap.xml`), robots
 (memblokir `/admin`), manifest, OG/Twitter, favicon `logo.svg`, halaman 404 informatif,
 error boundary tanpa bocor detail sensitif, `next/image` + remote pattern Supabase,
