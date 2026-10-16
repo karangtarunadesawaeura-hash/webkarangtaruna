@@ -5,12 +5,14 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publicKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Jika belum dikonfigurasi, lewati tanpa memutus navigasi.
-  if (!url || !anonKey) return supabaseResponse;
+  if (!url || !publicKey) return supabaseResponse;
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(url, publicKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

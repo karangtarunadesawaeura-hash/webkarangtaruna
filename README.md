@@ -53,8 +53,8 @@ npm run dev   # http://localhost:3000
 | Variabel | Wajib | Keterangan |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Ya (untuk fitur dinamis) | URL proyek Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ya | Anon key (aman untuk browser) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Hanya server/provisioning | **Jangan** expose ke browser |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Ya | Publishable key (aman untuk browser; `ANON_KEY` lama tetap didukung sebagai fallback) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Hanya server/provisioning | **Jangan** expose ke browser (proyek baru: `SUPABASE_SECRET_KEY`, server-only) |
 | `NEXT_PUBLIC_SITE_URL` | Anjuran | Mis. `https://karangtaruna-waeura.vercel.app` |
 
 Tanpa dua variabel `NEXT_PUBLIC_*`, aplikasi berjalan dalam **mode demo**: semua halaman
@@ -62,7 +62,7 @@ publik render dengan empty state, login admin menampilkan peringatan konfigurasi
 
 ## Menghubungkan Supabase
 
-1. Buat proyek di [supabase.com](https://supabase.com) → catat URL + anon key + service role key.
+1. Buat proyek di [supabase.com](https://supabase.com) → catat URL + publishable key + secret/service role key (server-only).
 2. Jalankan migrasi (pilih salah satu):
    - **SQL Editor**: tempel isi `supabase/migrations/0001_schema.sql` lalu `0002_rls_storage.sql`, Run.
    - **Supabase CLI**: `supabase link --project-ref <ref>` lalu `supabase db push`.
@@ -136,8 +136,8 @@ npm start          # jalankan hasil build
 1. Push repo ke GitHub (`main` = produksi).
 2. Vercel → New Project → import repo → framework Next.js (default).
 3. Environment Variables (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (= domain produksi).
-   Service role key **tidak** dipasang di Vercel.
+   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL` (= domain produksi).
+   Secret/service role key **tidak** dipasang di Vercel.
 4. Deploy → uji `/`, `/berita`, `/admin/login`.
 5. Tambahkan domain kustom: Vercel → Settings → Domains → Add → ikuti verifikasi DNS;
    lalu update Site URL + Redirect URLs Supabase ke domain tersebut.

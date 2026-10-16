@@ -5,7 +5,8 @@
  *  1. Migrasi 0001 & 0002 sudah dijalankan di proyek Supabase.
  *  2. Buat user terlebih dahulu via Dashboard Supabase → Authentication → Add user
  *     (atau `supabase auth admin create-user`), catat USER_ID (UUID) dan EMAIL.
- *  3. Isi .env.local dengan NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
+ *  3. Isi .env.local dengan NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+ *     (proyek Supabase baru: SUPABASE_SECRET_KEY — sama-sama server-only).
  *
  * Cara pakai:
  *   npm run provision:admin -- <USER_ID> <ROLE> ["Nama Lengkap"]
@@ -29,9 +30,10 @@ if (!["super_admin", "admin", "editor"].includes(role)) {
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Server-only. Dukung penamaan lama (SERVICE_ROLE) dan baru (SECRET).
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 if (!url || !serviceKey) {
-  console.error("Isi NEXT_PUBLIC_SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di .env.local terlebih dahulu.");
+  console.error("Isi NEXT_PUBLIC_SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY (atau SUPABASE_SECRET_KEY) di .env.local terlebih dahulu.");
   process.exit(1);
 }
 

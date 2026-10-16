@@ -45,7 +45,7 @@ function LoginForm() {
       {!isSupabaseConfigured() && (
         <p role="alert" className="rounded-lg bg-gold-300/30 p-3 text-xs font-semibold text-forest-900">
           Supabase belum terhubung. Login membutuhkan NEXT_PUBLIC_SUPABASE_URL dan
-          NEXT_PUBLIC_SUPABASE_ANON_KEY. Lihat README bagian Instalasi & Pembuatan Admin Awal.
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Lihat README bagian Instalasi & Pembuatan Admin Awal.
         </p>
       )}
       <form onSubmit={onSubmit} className="flex flex-col gap-4">

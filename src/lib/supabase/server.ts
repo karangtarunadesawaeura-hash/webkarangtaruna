@@ -6,8 +6,13 @@ import { isSupabaseConfigured } from "@/lib/env";
 export async function createClient() {
   const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-  return createServerClient(url, anonKey, {
+  // Kanonis baru: PUBLISHABLE_KEY (aman untuk browser/server anon).
+  // ANON_KEY sebagai fallback. SECRET/SERVICE_ROLE tidak dipakai di sini.
+  const publicKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    "";
+  return createServerClient(url, publicKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
