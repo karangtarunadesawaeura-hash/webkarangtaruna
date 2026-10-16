@@ -131,3 +131,16 @@ export const organizationSettingsSchema = z.object({
   tiktok: z.string().url().optional().or(z.literal("")),
   leadership_period: z.string().max(50).optional().or(z.literal("")),
 });
+
+// Admin menambah/mengedit pendaftar secara manual (tanpa honeypot, status bisa dipilih).
+export const adminMembershipSchema = z.object({
+  full_name: z.string().min(3, "Nama lengkap minimal 3 karakter").max(100),
+  phone: z.string().min(9, "Nomor kontak tidak valid").max(20).regex(/^[+0-9\s-]+$/, "Nomor kontak hanya boleh angka, +, spasi, -"),
+  email: z.string().email("Email tidak valid").optional().or(z.literal("")),
+  address: z.string().max(255).optional().or(z.literal("")),
+  birth_date: z.string().optional().or(z.literal("")),
+  interests: z.string().max(500).optional().or(z.literal("")),
+  desired_field: z.string().max(100).optional().or(z.literal("")),
+  status: z.enum(["menunggu", "diterima", "ditolak"]),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+});

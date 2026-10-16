@@ -25,13 +25,22 @@ async function countOf(table: string, filter?: { col: string; val: string }): Pr
 
 export default async function AdminDashboardPage() {
   const user = await requireRole(["super_admin", "admin", "editor"]);
-  const [totalAnggota, anggotaAktif, programs, kegiatanSelesai, laporan, pendingMembers, recentEvents, recentReports, recentActivity] = await Promise.all([
+  const [totalAnggota, anggotaAktif, programs, kegiatanSelesai, laporan, pendingMembers, pendingList, recentEvents, recentReports, recentActivity] = await Promise.all([
     countOf("membership_applications"),
     countOf("membership_applications", { col: "status", val: "diterima" }),
     countOf("programs"),
     countOf("events", { col: "status", val: "selesai" }),
     countOf("reports"),
     countOf("membership_applications", { col: "status", val: "menunggu" }),
+    (async () => {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase.from("membership_applications").select("id,full_name,created_at").eq("status", "menunggu").order("created_at", { ascending: false }).limit(5);
+        return (data as { id: string; full_name: string; created_at: string }[] | null) ?? [];
+      } catch {
+        return [];
+      }
+    })(),
     (async () => {
       try {
         const supabase = await createClient();
@@ -93,6 +102,24 @@ export default async function AdminDashboardPage() {
           ))}
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-3">
+            <CardContent className="flex flex-col gap-2 p-5">
+              <h2 className="flex items-center gap-2 font-bold text-forest-950"><Inbox className="h-4 w-4" /> Menunggu Verifikasi ({pendingMembers ?? "—"})</h2>
+              {pendingList.length === 0 ? (
+                <EmptyState title="Tidak ada pendaftar menunggu" description="Pendaftar baru dari formulir keanggotaan akan muncul di sini untuk diverifikasi." />
+              ) : (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {pendingList.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-2 rounded-xl border border-forest-50 p-3 text-sm">
+                      <span><span className="font-bold">{p.full_name}</span><br /><span className="text-xs text-stone-500">{formatTanggalWaktu(p.created_at)}</span></span>
+                      <Link href={`/admin/anggota/${p.id}`} className="shrink-0 rounded-lg bg-forest-900 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-forest-800">Verifikasi</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/admin/anggota?status=menunggu" className="text-sm font-bold text-forest-700 hover:underline">Lihat semua pendaftar →</Link>
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="flex flex-col gap-2 p-5">
               <h2 className="flex items-center gap-2 font-bold text-forest-950"><CalendarDays className="h-4 w-4" /> Kegiatan Terbaru</h2>

@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { MembershipRowActions } from "@/components/admin/membership-actions";
+import { MemberEditor } from "@/components/admin/editors";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatTanggal, formatTanggalWaktu } from "@/lib/utils";
@@ -51,6 +52,12 @@ export default async function AdminAnggotaDetailPage({ params }: { params: Promi
             <h2 className="font-bold">Verifikasi Pendaftaran</h2>
             <p className="text-xs text-stone-500">Menyetujui berarti mencatat sebagai anggota aktif (sumber statistik anggota). Penolakan tetap menyimpan riwayat.</p>
             <MembershipRowActions id={m.id} status={m.status} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-5">
+            <h2 className="font-bold">Edit Data</h2>
+            <MemberEditor id={m.id} initial={data as unknown as Record<string, unknown>} />
           </CardContent>
         </Card>
         <p className="text-xs text-stone-500">Data privat — hanya pengurus berwenang. Jangan menampilkan nomor telepon/alamat di halaman publik.</p>

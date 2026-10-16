@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/layout/logo";
 import { isSupabaseConfigured } from "@/lib/env-client";
 
 function LoginForm() {
@@ -60,9 +62,11 @@ function LoginForm() {
 export default function AdminLoginPage() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14">
-      <div className="text-center">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Logo orgName="Karang Taruna Desa Waeura" />
+        <Badge tone="gold">Area Khusus Pengurus</Badge>
         <h1 className="text-2xl font-extrabold">Login Dashboard Admin</h1>
-        <p className="mt-1 text-sm text-stone-600">Karang Taruna Desa Waeura — khusus pengurus berwenang.</p>
+        <p className="mt-1 text-sm text-stone-600">Karang Taruna Desa Waeura — khusus pengurus berwenang. Tidak ada pendaftaran publik.</p>
       </div>
       <Suspense>
         <LoginForm />

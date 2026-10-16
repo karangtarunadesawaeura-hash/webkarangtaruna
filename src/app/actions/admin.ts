@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import {
+  adminMembershipSchema,
   announcementSchema,
   boardMemberSchema,
   eventSchema,
@@ -339,6 +340,52 @@ export async function deleteMembershipAction(id: string): Promise<ActionResult> 
     return { ok: true, message: "Data pendaftaran dihapus." };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Gagal menghapus." };
+  }
+}
+
+// ---------- MEMBERSHIP UPSERT (tambah manual / edit oleh admin) ----------
+export async function upsertMembershipAction(id: string | null, formData: FormData): Promise<ActionResult> {
+  try {
+    const user = await requireAdmin(["super_admin", "admin"]);
+    const parsed = adminMembershipSchema.safeParse({
+      full_name: String(formData.get("full_name") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      email: nullIfEmpty(formData.get("email")) ?? "",
+      address: nullIfEmpty(formData.get("address")) ?? "",
+      birth_date: nullIfEmpty(formData.get("birth_date")) ?? "",
+      interests: nullIfEmpty(formData.get("interests")) ?? "",
+      desired_field: nullIfEmpty(formData.get("desired_field")) ?? "",
+      status: String(formData.get("status") ?? "menunggu"),
+      notes: nullIfEmpty(formData.get("notes")) ?? "",
+    });
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Data tidak valid." };
+    const supabase = await createClient();
+    const payload = {
+      full_name: parsed.data.full_name,
+      phone: parsed.data.phone,
+      email: parsed.data.email || null,
+      address: parsed.data.address || null,
+      birth_date: parsed.data.birth_date || null,
+      interests: parsed.data.interests || null,
+      desired_field: parsed.data.desired_field || null,
+      status: parsed.data.status,
+      notes: parsed.data.notes || null,
+      consent_data_usage: true,
+    };
+    if (id) {
+      const { error } = await supabase.from("membership_applications").update(payload).eq("id", id);
+      if (error) throw error;
+      await logActivity(supabase, user.id, "update", "membership_applications", id);
+    } else {
+      const { data, error } = await supabase.from("membership_applications").insert(payload).select("id").single();
+      if (error) throw error;
+      await logActivity(supabase, user.id, "create", "membership_applications", (data as { id: string }).id);
+    }
+    revalidatePath("/admin/anggota");
+    revalidatePath("/admin");
+    return { ok: true, message: "Data anggota berhasil disimpan." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Gagal menyimpan data." };
   }
 }
 

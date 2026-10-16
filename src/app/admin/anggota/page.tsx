@@ -37,7 +37,10 @@ export default async function AdminAnggotaPage({ searchParams }: { searchParams:
   return (
     <AdminShell role={user.role!} email={user.email}>
       <div className="flex flex-col gap-4">
-        <div><h1 className="text-2xl font-extrabold">Pendaftar Anggota</h1><p className="text-sm text-stone-600">Data privat — hanya pengurus berwenang. Jangan membagikan ke publik.</p></div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h1 className="text-2xl font-extrabold">Pendaftar Anggota</h1><p className="text-sm text-stone-600">Data privat — hanya pengurus berwenang. Jangan membagikan ke publik.</p></div>
+          <Link href="/admin/anggota/baru" className="rounded-xl bg-forest-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-forest-800">＋ Tambah Manual</Link>
+        </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter status">
           {[["", "Semua"], ["menunggu", "Menunggu"], ["diterima", "Diterima"], ["ditolak", "Ditolak"]].map(([v, l]) => (
             <Link key={v || "all"} href={buildHref({ status: v, page: 1 })}

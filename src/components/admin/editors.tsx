@@ -8,7 +8,7 @@ import { UploadBox } from "./upload-box";
 import {
   upsertNewsAction, upsertProgramAction, upsertEventAction,
   upsertBoardMemberAction, upsertReportAction, upsertAnnouncementAction,
-  upsertAlbumAction, updateSettingsAction,
+  upsertAlbumAction, updateSettingsAction, upsertMembershipAction,
 } from "@/app/actions/admin";
 import { NEWS_CATEGORIES, PROGRAM_CATEGORIES } from "@/lib/constants";
 
@@ -224,6 +224,39 @@ export function AlbumEditor({ initial, id }: { initial?: Record<string, unknown>
       <UploadBox onUploaded={() => {}} />
       {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Album"}</Button>
+    </form>
+  );
+}
+
+// ---------- MEMBER (tambah manual / edit oleh admin) ----------
+export function MemberEditor({ initial, id }: { initial?: Record<string, unknown> | null; id: string | null }) {
+  const { msg, pending, submit } = useSubmit(upsertMembershipAction, id, "/admin/anggota");
+  const g = (k: string) => (initial?.[k] as string) ?? "";
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Nama Lengkap *" name="full_name" required defaultValue={g("full_name")} />
+        <Input label="Nomor Telepon *" name="phone" required defaultValue={g("phone")} placeholder="Contoh: 0812xxxxxxx" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Email" name="email" type="email" defaultValue={g("email")} />
+        <Input label="Tanggal Lahir" name="birth_date" type="date" defaultValue={g("birth_date")?.slice(0, 10)} />
+      </div>
+      <Input label="Alamat" name="address" defaultValue={g("address")} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Bidang Diminati" name="desired_field" defaultValue={g("desired_field")} />
+        <Input label="Minat / Keahlian" name="interests" defaultValue={g("interests")} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Select label="Status *" name="status" defaultValue={g("status") || "menunggu"}>
+          <option value="menunggu">Menunggu</option>
+          <option value="diterima">Diterima (aktif)</option>
+          <option value="ditolak">Ditolak</option>
+        </Select>
+        <Input label="Catatan Internal" name="notes" defaultValue={g("notes")} placeholder="Hanya dibaca admin" />
+      </div>
+      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Data Anggota"}</Button>
     </form>
   );
 }
