@@ -64,7 +64,7 @@ publik render dengan empty state, login admin menampilkan peringatan konfigurasi
 
 1. Buat proyek di [supabase.com](https://supabase.com) → catat URL + publishable key + secret/service role key (server-only).
 2. Jalankan migrasi (pilih salah satu):
-   - **SQL Editor**: tempel isi `supabase/migrations/0001_schema.sql` lalu `0002_rls_storage.sql`, Run.
+   - **SQL Editor**: tempel isi `supabase/migrations/0001_schema.sql` lalu `0002_rls_storage.sql` lalu `0003_role_guard.sql`, Run.
    - **Supabase CLI**: `supabase link --project-ref <ref>` lalu `supabase db push`.
 3. Verifikasi: tabel `profiles`, `organization_settings`, `board_members`, `programs`,
    `news`, `events`, `event_registrations`, `membership_applications`, `gallery_albums`,
@@ -77,6 +77,10 @@ publik render dengan empty state, login admin menampilkan peringatan konfigurasi
    - Site URL = domain produksi (mis. `https://karangtaruna-waeura.vercel.app`)
    - Redirect URLs: `http://localhost:3000/**`, `https://<preview>.vercel.app/**`,
      `https://<domain-produksi>/**`.
+7. **Kunci pendaftaran publik** (wajib, spec Pengguna & Peran): Authentication →
+   Sign In / Providers → Email → matikan **Allow new users to sign up**.
+   Akun admin hanya via provisioning (`npm run provision:admin`); trigger
+   `trg_profiles_role_guard` (migrasi 0003) menolak eskalasi `role` oleh non-super_admin.
 
 ### Skema & keamanan data
 
