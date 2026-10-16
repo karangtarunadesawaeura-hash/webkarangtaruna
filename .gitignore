@@ -16,6 +16,10 @@
 # next.js
 /.next/
 /out/
+# monorepo admin: abaikan juga artefak build & dependensi di dalam admin/
+admin/.next/
+admin/out/
+admin/node_modules/
 
 # production
 /build
