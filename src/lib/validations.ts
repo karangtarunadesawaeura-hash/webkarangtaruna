@@ -144,3 +144,13 @@ export const adminMembershipSchema = z.object({
   status: z.enum(["menunggu", "diterima", "ditolak"]),
   notes: z.string().max(1000).optional().or(z.literal("")),
 });
+
+// Super Admin mendaftarkan anggota admin via menu UI (tanpa skrip provisioning).
+// UID harus milik auth user yang sudah dibuat di Dashboard → Authentication.
+export const adminProfileSchema = z.object({
+  user_id: z.string().trim().uuid("UID tidak valid — salin dari Authentication → Users."),
+  full_name: z.string().trim().min(3, "Nama minimal 3 karakter").max(100, "Nama terlalu panjang"),
+  role: z.enum(["super_admin", "admin", "editor"]),
+});
+
+export type AdminProfileInput = z.infer<typeof adminProfileSchema>;

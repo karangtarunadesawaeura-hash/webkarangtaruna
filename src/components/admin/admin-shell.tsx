@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Newspaper, CalendarDays, Briefcase, Images,
-  Users, FileText, Megaphone, Settings, LogOut, Inbox, ShieldCheck, Menu, X,
+  Users, FileText, Megaphone, Settings, LogOut, Inbox, ShieldCheck, UserCog, Menu, X,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const MENU: { href: string; label: string; icon: React.ReactNode; roles: UserRol
   { href: "/admin/pengurus", label: "Pengurus", icon: <Users className="h-4 w-4" />, roles: ["super_admin", "admin"] },
   { href: "/admin/anggota", label: "Pendaftar Anggota", icon: <Inbox className="h-4 w-4" />, roles: ["super_admin", "admin"] },
   { href: "/admin/pesan", label: "Pesan Masuk", icon: <Inbox className="h-4 w-4" />, roles: ["super_admin", "admin"] },
+  { href: "/admin/anggota-admin", label: "Anggota Admin", icon: <UserCog className="h-4 w-4" />, roles: ["super_admin"] },
   { href: "/admin/pengguna", label: "Pengguna & Peran", icon: <ShieldCheck className="h-4 w-4" />, roles: ["super_admin"] },
   { href: "/admin/pengaturan", label: "Pengaturan", icon: <Settings className="h-4 w-4" />, roles: ["super_admin"] },
 ];

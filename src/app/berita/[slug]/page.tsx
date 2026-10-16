@@ -68,8 +68,8 @@ export default async function BeritaDetailPage({
         {article.summary && <p className="text-base leading-relaxed text-stone-600">{article.summary}</p>}
       </div>
       {article.cover_image_url && (
-        <div className="relative h-64 w-full overflow-hidden rounded-2xl sm:h-96">
-          <Image src={article.cover_image_url} alt={article.title} fill sizes="100vw" className="object-cover" priority />
+        <div className="relative h-64 w-full overflow-hidden rounded-2xl bg-stone-100 sm:h-96">
+          <Image src={article.cover_image_url} alt={article.title} fill sizes="100vw" className="object-contain" priority />
         </div>
       )}
       <div className="prose max-w-none text-[15px] leading-relaxed text-stone-800">

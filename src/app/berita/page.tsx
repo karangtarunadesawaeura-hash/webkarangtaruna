@@ -81,8 +81,8 @@ export default async function BeritaPage({
             {items.map((n) => (
               <Link key={n.id} href={`/berita/${n.slug}`} className="group overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-sm transition-shadow hover:shadow-md">
                 {n.cover_image_url ? (
-                  <div className="relative h-44 w-full overflow-hidden">
-                    <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition-transform group-hover:scale-105" />
+                  <div className="relative h-44 w-full overflow-hidden bg-stone-100">
+                    <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-contain" />
                   </div>
                 ) : (
                   <div className="flex h-44 items-center justify-center bg-forest-50 text-forest-300"><Newspaper className="h-8 w-8" /></div>

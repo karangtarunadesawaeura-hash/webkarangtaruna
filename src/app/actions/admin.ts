@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import {
   adminMembershipSchema,
+  adminProfileSchema,
   announcementSchema,
   boardMemberSchema,
   eventSchema,
@@ -650,6 +651,43 @@ export async function updateSettingsAction(formData: FormData): Promise<ActionRe
     return { ok: true, message: "Pengaturan organisasi berhasil disimpan." };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Gagal menyimpan pengaturan." };
+  }
+}
+
+// ---------- ADMIN PROFILES: tambah/daftarkan anggota admin via menu UI (super_admin) ----------
+// UID harus milik auth user yang SUDAH dibuat di Dashboard → Authentication → Add user.
+// Upsert memakai sesi super_admin sendiri (RLS profiles_admin_all) — tanpa service key,
+// sehingga aman dijalankan di production. Trigger trg_profiles_role_guard mengizinkan
+// perubahan role oleh super_admin.
+export async function upsertAdminProfileAction(formData: FormData): Promise<ActionResult> {
+  try {
+    const me = await requireAdmin(["super_admin"]);
+    const parsed = adminProfileSchema.safeParse({
+      user_id: String(formData.get("user_id") ?? ""),
+      full_name: String(formData.get("full_name") ?? ""),
+      role: String(formData.get("role") ?? "editor"),
+    });
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Data tidak valid." };
+    if (me.id === parsed.data.user_id && parsed.data.role !== "super_admin") {
+      return { ok: false, message: "Anda tidak dapat menurunkan peran diri sendiri." };
+    }
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: parsed.data.user_id, full_name: parsed.data.full_name, role: parsed.data.role }, { onConflict: "id" });
+    if (error) {
+      // FK profiles.id → auth.users(id): UID belum terdaftar sebagai auth user.
+      if ((error as { code?: string }).code === "23503") {
+        return { ok: false, message: "UID tidak terdaftar. Buat dulu di Dashboard → Authentication → Add user, lalu ulangi." };
+      }
+      throw error;
+    }
+    await logActivity(supabase, me.id, `admin-upsert:${parsed.data.role}`, "profiles", parsed.data.user_id);
+    revalidatePath("/admin/anggota-admin");
+    revalidatePath("/admin/pengguna");
+    return { ok: true, message: `Anggota admin tersimpan sebagai ${parsed.data.role.replace("_", " ")}.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Gagal menyimpan anggota admin." };
   }
 }
 
