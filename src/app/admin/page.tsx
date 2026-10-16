@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Newspaper, CalendarDays, Briefcase, Users, Inbox, Mail } from "lucide-react";
+import { Newspaper, CalendarDays, Briefcase, Users, Inbox, FileText, CheckCircle2, Activity } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/state";
+import { formatTanggalWaktu } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard Admin" };
 
@@ -22,22 +25,49 @@ async function countOf(table: string, filter?: { col: string; val: string }): Pr
 
 export default async function AdminDashboardPage() {
   const user = await requireRole(["super_admin", "admin", "editor"]);
-  const [news, events, programs, members, pendingMembers, messages] = await Promise.all([
-    countOf("news"),
-    countOf("events"),
-    countOf("programs"),
+  const [totalAnggota, anggotaAktif, programs, kegiatanSelesai, laporan, pendingMembers, recentEvents, recentReports, recentActivity] = await Promise.all([
+    countOf("membership_applications"),
     countOf("membership_applications", { col: "status", val: "diterima" }),
+    countOf("programs"),
+    countOf("events", { col: "status", val: "selesai" }),
+    countOf("reports"),
     countOf("membership_applications", { col: "status", val: "menunggu" }),
-    countOf("contact_messages"),
+    (async () => {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase.from("events").select("id,title,status,starts_at").order("starts_at", { ascending: false }).limit(5);
+        return (data as { id: string; title: string; status: string; starts_at: string }[] | null) ?? [];
+      } catch {
+        return [];
+      }
+    })(),
+    (async () => {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase.from("reports").select("id,title,is_public,created_at").order("created_at", { ascending: false }).limit(5);
+        return (data as { id: string; title: string; is_public: boolean; created_at: string }[] | null) ?? [];
+      } catch {
+        return [];
+      }
+    })(),
+    (async () => {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase.from("activity_logs").select("id,action,entity,entity_id,created_at").order("created_at", { ascending: false }).limit(8);
+        return (data as { id: string; action: string; entity: string | null; entity_id: string | null; created_at: string }[] | null) ?? [];
+      } catch {
+        return [];
+      }
+    })(),
   ]);
 
   const cards = [
-    { label: "Berita", value: news, href: "/admin/berita", icon: <Newspaper className="h-5 w-5" /> },
-    { label: "Kegiatan", value: events, href: "/admin/kegiatan", icon: <CalendarDays className="h-5 w-5" /> },
+    { label: "Total Anggota Terdaftar", value: totalAnggota, href: "/admin/anggota", icon: <Users className="h-5 w-5" /> },
+    { label: "Anggota Aktif (Diterima)", value: anggotaAktif, href: "/admin/anggota?status=diterima", icon: <CheckCircle2 className="h-5 w-5" /> },
     { label: "Program Kerja", value: programs, href: "/admin/program", icon: <Briefcase className="h-5 w-5" /> },
-    { label: "Anggota Diterima", value: members, href: "/admin/anggota", icon: <Users className="h-5 w-5" /> },
-    { label: "Pendaftar Menunggu", value: pendingMembers, href: "/admin/anggota", icon: <Inbox className="h-5 w-5" /> },
-    { label: "Pesan Masuk", value: messages, href: "/admin/pesan", icon: <Mail className="h-5 w-5" /> },
+    { label: "Kegiatan Selesai", value: kegiatanSelesai, href: "/admin/kegiatan", icon: <CalendarDays className="h-5 w-5" /> },
+    { label: "Laporan Kegiatan", value: laporan, href: "/admin/laporan", icon: <FileText className="h-5 w-5" /> },
+    { label: "Menunggu Verifikasi", value: pendingMembers, href: "/admin/anggota?status=menunggu", icon: <Inbox className="h-5 w-5" /> },
   ];
 
   return (
@@ -61,6 +91,61 @@ export default async function AdminDashboardPage() {
               </Card>
             </Link>
           ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card>
+            <CardContent className="flex flex-col gap-2 p-5">
+              <h2 className="flex items-center gap-2 font-bold text-forest-950"><CalendarDays className="h-4 w-4" /> Kegiatan Terbaru</h2>
+              {recentEvents.length === 0 ? (
+                <EmptyState title="Belum ada kegiatan" description="Kegiatan terbaru akan muncul di sini setelah ditambahkan." />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {recentEvents.map((e) => (
+                    <li key={e.id} className="rounded-xl border border-forest-50 p-3 text-sm">
+                      <p className="font-bold">{e.title}</p>
+                      <p className="mt-1 flex flex-wrap gap-2 text-xs text-stone-500"><Badge tone="gold">{e.status}</Badge>{formatTanggalWaktu(e.starts_at)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/admin/kegiatan" className="text-sm font-bold text-forest-700 hover:underline">Kelola kegiatan →</Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col gap-2 p-5">
+              <h2 className="flex items-center gap-2 font-bold text-forest-950"><Newspaper className="h-4 w-4" /> Laporan Terbaru</h2>
+              {recentReports.length === 0 ? (
+                <EmptyState title="Belum ada laporan" description="Laporan terbaru akan muncul di sini." />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {recentReports.map((r) => (
+                    <li key={r.id} className="rounded-xl border border-forest-50 p-3 text-sm">
+                      <p className="font-bold">{r.title}</p>
+                      <p className="mt-1 flex flex-wrap gap-2 text-xs text-stone-500"><Badge tone={r.is_public ? "green" : "gray"}>{r.is_public ? "Publik" : "Privat"}</Badge>{formatTanggalWaktu(r.created_at)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/admin/laporan" className="text-sm font-bold text-forest-700 hover:underline">Kelola laporan →</Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col gap-2 p-5">
+              <h2 className="flex items-center gap-2 font-bold text-forest-950"><Activity className="h-4 w-4" /> Aktivitas Admin Terbaru</h2>
+              {recentActivity.length === 0 ? (
+                <EmptyState title="Belum ada aktivitas tercatat" description="Setiap aksi simpan/hapus/ubah status admin dicatat di sini. Editor tidak memiliki akses ke log ini." />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {recentActivity.map((a) => (
+                    <li key={a.id} className="rounded-xl border border-forest-50 p-3 text-xs text-stone-600">
+                      <p className="font-bold text-forest-950">{a.action}{a.entity ? ` • ${a.entity}` : ""}</p>
+                      <p className="mt-0.5">{formatTanggalWaktu(a.created_at)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         </div>
         <Card>
           <CardContent className="flex flex-col gap-2 p-5 text-sm text-stone-600">
