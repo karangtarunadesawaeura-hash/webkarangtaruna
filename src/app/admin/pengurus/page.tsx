@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { DeleteButton } from "@/components/admin/delete-button";
-import { deleteBoardMemberAction } from "@/app/actions/admin";
+import { deleteBoardMemberAction, moveBoardMemberAction } from "@/app/actions/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,15 +18,26 @@ export default async function AdminPengurusPage() {
     <AdminShell role={user.role!} email={user.email}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h1 className="text-2xl font-extrabold">Pengurus</h1><p className="text-sm text-stone-600">Isi nama resmi — jangan mengarang. Hanya yang aktif tampil di publik.</p></div>
+          <div><h1 className="text-2xl font-extrabold">Pengurus</h1><p className="text-sm text-stone-600">Isi nama resmi — jangan mengarang. Hanya yang aktif tampil di publik. Urutan bagan: 1 = puncak, 2–4 = pengurus inti, selebihnya kelompok per bidang.</p></div>
           <Link href="/admin/pengurus/baru"><Button>＋ Pengurus Baru</Button></Link>
         </div>
         {items.length === 0 ? <EmptyState title="Belum ada data pengurus" description="Tambahkan pengurus resmi via tombol di atas." /> : (
           <Card><CardContent className="flex flex-col gap-2 p-3">
-            {items.map((m) => (
+            {items.map((m, i) => (
               <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-forest-50 p-3">
-                <div><p className="font-bold">{m.name}</p><p className="flex flex-wrap gap-2 text-xs text-stone-500"><Badge>{m.position}</Badge>{m.division && <span>{m.division}</span>}<Badge tone={m.is_active ? "green" : "gray"}>{m.is_active ? "Aktif" : "Nonaktif"}</Badge></p></div>
-                <div className="flex items-center gap-2"><Link href={`/admin/pengurus/${m.id}`} className="rounded-lg bg-forest-50 px-2.5 py-1.5 text-xs font-bold text-forest-900 hover:bg-forest-100">Edit</Link><DeleteButton id={m.id} onDelete={deleteBoardMemberAction} /></div>
+                <div className="flex items-center gap-3">
+                  <span aria-label={`Urutan ${i + 1}`} title={`Urutan bagan: ${i + 1}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-900 text-sm font-extrabold text-gold-400">{i + 1}</span>
+                  <div><p className="font-bold">{m.name}</p><p className="flex flex-wrap gap-2 text-xs text-stone-500"><Badge>{m.position}</Badge>{m.division && <span>{m.division}</span>}<Badge tone={m.is_active ? "green" : "gray"}>{m.is_active ? "Aktif" : "Nonaktif"}</Badge></p></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <form action={moveBoardMemberAction.bind(null, m.id, "up")}>
+                    <button type="submit" disabled={i === 0} aria-label={`Naikkan ${m.name}`} title="Naik satu tingkat" className="rounded-lg bg-forest-50 px-2.5 py-1.5 text-xs font-bold text-forest-900 hover:bg-forest-100 disabled:opacity-40">↑</button>
+                  </form>
+                  <form action={moveBoardMemberAction.bind(null, m.id, "down")}>
+                    <button type="submit" disabled={i === items.length - 1} aria-label={`Turunkan ${m.name}`} title="Turun satu tingkat" className="rounded-lg bg-forest-50 px-2.5 py-1.5 text-xs font-bold text-forest-900 hover:bg-forest-100 disabled:opacity-40">↓</button>
+                  </form>
+                  <Link href={`/admin/pengurus/${m.id}`} className="rounded-lg bg-forest-50 px-2.5 py-1.5 text-xs font-bold text-forest-900 hover:bg-forest-100">Edit</Link><DeleteButton id={m.id} onDelete={deleteBoardMemberAction} />
+                </div>
               </div>
             ))}
           </CardContent></Card>

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Users, Target, Eye, History } from "lucide-react";
+import { Target, Eye, History } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading, EmptyState } from "@/components/ui/state";
+import { OrgChart } from "@/components/structure/org-chart";
 import { getBoardMembers, getSiteInfo } from "@/lib/data";
-import Image from "next/image";
 
 export const metadata: Metadata = { title: "Profil Organisasi" };
 
@@ -68,34 +68,11 @@ export default async function ProfilPage() {
       )}
 
       <section className="flex flex-col gap-6">
-        <SectionHeading align="left" eyebrow="Kepengurusan" title="Struktur Kepengurusan" description="Susunan pengurus aktif Karang Taruna Desa Waeura beserta bidang dan tugasnya." />
+        <SectionHeading align="left" eyebrow="Kepengurusan" title="Struktur Kepengurusan" description="Bagan susunan pengurus aktif Karang Taruna Desa Waeura. Urutan bagan mengikuti urutan yang diatur admin di dashboard." />
         {members.length === 0 ? (
           <EmptyState title="Data pengurus belum tersedia" description="Struktur kepengurusan akan ditampilkan di sini setelah diisi oleh admin. Nama pengurus tidak dikarang — seluruhnya bersumber dari data resmi." />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {members.map((m) => (
-              <Card key={m.id} className="overflow-hidden">
-                <CardContent className="flex flex-col gap-2 p-5">
-                  <div className="flex items-center gap-3">
-                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-forest-100">
-                      {m.photo_url ? (
-                        <Image src={m.photo_url} alt={`Foto ${m.name}`} fill sizes="48px" className="object-cover" />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-forest-700"><Users className="h-5 w-5" /></span>
-                      )}
-                    </span>
-                    <div>
-                      <h3 className="font-bold leading-tight">{m.name}</h3>
-                      <p className="text-sm font-semibold text-forest-700">{m.position}</p>
-                      {m.division && <p className="text-xs text-stone-500">{m.division}</p>}
-                    </div>
-                  </div>
-                  {m.duties && <p className="text-sm text-stone-600">{m.duties}</p>}
-                  {m.period && <p className="text-xs text-stone-500">Periode: {m.period}</p>}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <OrgChart members={members} />
         )}
         <p className="text-xs text-stone-500">Catatan: nama pengurus di atas berasal dari database resmi dan dapat dikelola melalui dashboard admin.</p>
       </section>

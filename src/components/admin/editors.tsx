@@ -146,21 +146,48 @@ export function EventEditor({ initial, id }: { initial?: Record<string, unknown>
 }
 
 // ---------- BOARD ----------
-export function BoardEditor({ initial, id }: { initial?: Record<string, unknown> | null; id: string | null }) {
+// Form: Nama, Jabatan, Urutan, Bidang (pilih dari daftar / tambah baru), Foto (URL + unggah),
+// status Aktif. Kolom duties & period tidak dikelola di sini (dipertahankan apa adanya di DB).
+export function BoardEditor({ initial, id, divisions }: { initial?: Record<string, unknown> | null; id: string | null; divisions?: string[] }) {
   const { msg, pending, submit } = useSubmit(upsertBoardMemberAction, id, "/admin/pengurus");
   const g = (k: string) => (initial?.[k] as string) ?? "";
+  const options = divisions ?? [];
+  const currentDivision = g("division");
+  const [isNewDivision, setIsNewDivision] = useState(() => Boolean(currentDivision && !options.includes(currentDivision)));
+  const [pickedDivision, setPickedDivision] = useState(() => (options.includes(currentDivision) ? currentDivision : ""));
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Nama *" name="name" required defaultValue={g("name")} placeholder="Nama resmi pengurus" />
         <Input label="Jabatan *" name="position" required defaultValue={g("position")} placeholder="Contoh: Ketua" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Bidang/Divisi" name="division" defaultValue={g("division")} />
-        <Input label="Periode" name="period" defaultValue={g("period")} placeholder="Contoh: 2024–2027" />
-        <Input label="Urutan" name="sort_order" type="number" defaultValue={g("sort_order") || "0"} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Urutan" name="sort_order" type="number" defaultValue={g("sort_order") || "0"} hint="1 = puncak bagan, 2–4 = pengurus inti" />
+        {isNewDivision ? (
+          <div className="flex flex-col gap-1.5">
+            <Input label="Bidang baru *" name="division" required defaultValue={currentDivision} placeholder="Contoh: Humas" />
+            <button type="button" onClick={() => setIsNewDivision(false)} className="w-fit text-xs font-bold text-forest-700 hover:underline">
+              ← Pilih dari daftar bidang
+            </button>
+          </div>
+        ) : (
+          <Select
+            label="Bidang"
+            name="division"
+            value={pickedDivision}
+            onChange={(e) => {
+              if (e.target.value === "__new__") setIsNewDivision(true);
+              else setPickedDivision(e.target.value);
+            }}
+          >
+            <option value="">— Tanpa bidang —</option>
+            {options.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+            <option value="__new__">＋ Bidang baru…</option>
+          </Select>
+        )}
       </div>
-      <Textarea label="Tugas & Tanggung Jawab" name="duties" rows={4} defaultValue={g("duties")} />
       <ImageUrlField name="photo_url" defaultValue={g("photo_url")} />
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input type="checkbox" name="is_active" defaultChecked={initial?.is_active !== false} className="h-4 w-4 accent-green-900" /> Aktif (tampil di publik)

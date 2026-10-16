@@ -276,13 +276,13 @@ export async function upsertBoardMemberAction(id: string | null, formData: FormD
     });
     if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Data tidak valid." };
     const supabase = await createClient();
+    // duties & period tidak dikelola form lagi: saat edit dipertahankan apa adanya,
+    // saat tambah baru dikosongkan.
     const payload = {
       name: parsed.data.name,
       position: parsed.data.position,
       division: parsed.data.division || null,
-      duties: parsed.data.duties || null,
       photo_url: parsed.data.photo_url || null,
-      period: parsed.data.period || null,
       sort_order: parsed.data.sort_order,
       is_active: parsed.data.is_active,
     };
@@ -291,7 +291,7 @@ export async function upsertBoardMemberAction(id: string | null, formData: FormD
       if (error) throw error;
       await logActivity(supabase, user.id, "update", "board_members", id);
     } else {
-      const { data, error } = await supabase.from("board_members").insert(payload).select("id").single();
+      const { data, error } = await supabase.from("board_members").insert({ ...payload, duties: null, period: null }).select("id").single();
       if (error) throw error;
       await logActivity(supabase, user.id, "create", "board_members", (data as { id: string }).id);
     }
@@ -314,6 +314,31 @@ export async function deleteBoardMemberAction(id: string): Promise<ActionResult>
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Gagal menghapus." };
   }
+}
+
+// ---------- URUTAN BAGAN: geser pengurus naik/turun (super_admin, admin) ----------
+// Menukar sort_order dengan tetangga terdekat. Dipakai sebagai form action di
+// daftar pengurus sehingga urutan bagan publik bisa diatur tanpa mengetik angka.
+export async function moveBoardMemberAction(id: string, direction: "up" | "down"): Promise<void> {
+  await requireAdmin(["super_admin", "admin"]);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("board_members")
+    .select("id,sort_order")
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw error;
+  const rows = (data as { id: string; sort_order: number }[] | null) ?? [];
+  const idx = rows.findIndex((r) => r.id === id);
+  const neighbor = direction === "up" ? rows[idx - 1] : rows[idx + 1];
+  if (idx < 0 || !neighbor) return;
+  const current = rows[idx];
+  const { error: e1 } = await supabase.from("board_members").update({ sort_order: neighbor.sort_order }).eq("id", current.id);
+  if (e1) throw e1;
+  const { error: e2 } = await supabase.from("board_members").update({ sort_order: current.sort_order }).eq("id", neighbor.id);
+  if (e2) throw e2;
+  revalidatePath("/profil");
+  revalidatePath("/admin/pengurus");
 }
 
 // ---------- MEMBERSHIP STATUS ----------
