@@ -10,6 +10,7 @@ dan kontak — lengkap dengan **dashboard admin** (`/admin`) tanpa perlu mengedi
 
 ## Teknologi
 
+
 - Next.js 16 (App Router) + TypeScript + Tailwind CSS v4
 - Komponen UI konsisten gaya shadcn + ikon Lucide
 - Supabase (PostgreSQL, Auth, Storage) via `@supabase/ssr`
