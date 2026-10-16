@@ -150,6 +150,7 @@ Metadata dinamis (termasuk detail berita), sitemap (`/sitemap.xml`), robots
 error boundary tanpa bocor detail sensitif, `next/image` + remote pattern Supabase,
 pagination, skeleton/empty state, aksesibilitas (skip-link, fokus keyboard, label/ARIA).
 
+
 ## Data & Placeholder
 
 Seluruh nama pengurus, sejarah, alamat, kontak, dan foto **bersumber dari database**
