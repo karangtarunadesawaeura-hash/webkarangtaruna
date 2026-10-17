@@ -133,7 +133,7 @@ export default async function HomePage() {
             <div className="sm:col-span-3">
               <EmptyState
                 title="Data statistik belum tersedia"
-                description="Statistik anggota, program, dan kegiatan akan tampil otomatis setelah pengurus mengisi data melalui dashboard admin."
+                description="Statistik anggota, program, dan kegiatan akan tampil otomatis setelah data diperbarui."
               />
             </div>
           )}
@@ -179,10 +179,14 @@ export default async function HomePage() {
                     </div>
                     <h3 className="font-bold leading-snug">{p.title}</h3>
                     <p className="text-sm text-stone-600 line-clamp-2">{truncate(p.description, 120) || "Deskripsi program akan segera dilengkapi."}</p>
-                    <Link href="/program" className="mt-1 text-sm font-bold text-forest-700 hover:underline">Lihat semua program →</Link>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+          {programs.length > 0 && (
+            <div className="flex justify-center">
+              <Link href="/program"><Button variant="secondary">Lihat Semua Program <ArrowRight aria-hidden /></Button></Link>
             </div>
           )}
         </div>
@@ -208,6 +212,11 @@ export default async function HomePage() {
             ))}
           </div>
         )}
+        {events.length > 0 && (
+          <div className="flex justify-center">
+            <Link href="/agenda"><Button variant="secondary">Lihat Semua Agenda <ArrowRight aria-hidden /></Button></Link>
+          </div>
+        )}
       </section>
 
       {/* BERITA */}
@@ -225,7 +234,7 @@ export default async function HomePage() {
                 <Link key={n.id} href={`/berita/${n.slug}`} className="group overflow-hidden rounded-2xl bg-white text-forest-950 transition-shadow hover:shadow-xl">
                   {n.cover_image_url ? (
                     <div className="relative h-44 w-full overflow-hidden bg-stone-100">
-                      <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-contain" />
+                      <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                     </div>
                   ) : (
                     <div className="flex h-44 items-center justify-center bg-forest-100 text-forest-400"><Newspaper className="h-8 w-8" /></div>

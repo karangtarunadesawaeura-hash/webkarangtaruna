@@ -29,7 +29,7 @@ export default async function ProfilPage() {
             {settings?.history ? (
               <p className="whitespace-pre-line text-sm leading-relaxed text-stone-700">{settings.history}</p>
             ) : (
-              <p className="text-sm text-stone-500">Sejarah organisasi akan dilengkapi oleh pengurus melalui dashboard admin. Bagian ini menggunakan placeholder yang dapat diedit.</p>
+              <p className="text-sm text-stone-500">Sejarah organisasi sedang dilengkapi oleh pengurus dan akan ditampilkan di halaman ini.</p>
             )}
             {settings?.leadership_period && (
               <p className="text-sm font-semibold text-forest-800">Periode kepengurusan: {settings.leadership_period}</p>
@@ -51,7 +51,7 @@ export default async function ProfilPage() {
                   {missions.map((m, i) => <li key={i}>{m.replace(/^\d+[.)]\s*/, "")}</li>)}
                 </ol>
               ) : (
-                <p className="text-sm text-stone-500">Misi organisasi akan dilengkapi oleh pengurus. Tulis setiap misi pada baris baru di dashboard.</p>
+                <p className="text-sm text-stone-500">Misi organisasi sedang dilengkapi oleh pengurus dan akan ditampilkan di halaman ini.</p>
               )}
             </CardContent>
           </Card>
@@ -68,13 +68,12 @@ export default async function ProfilPage() {
       )}
 
       <section className="flex flex-col gap-6">
-        <SectionHeading align="left" eyebrow="Kepengurusan" title="Struktur Kepengurusan" description="Bagan susunan pengurus aktif Karang Taruna Desa Waeura. Urutan bagan mengikuti urutan yang diatur admin di dashboard." />
+        <SectionHeading align="left" eyebrow="Kepengurusan" title="Struktur Kepengurusan" description="Bagan susunan pengurus aktif Karang Taruna Desa Waeura." />
         {members.length === 0 ? (
-          <EmptyState title="Data pengurus belum tersedia" description="Struktur kepengurusan akan ditampilkan di sini setelah diisi oleh admin. Nama pengurus tidak dikarang — seluruhnya bersumber dari data resmi." />
+          <EmptyState title="Data pengurus belum tersedia" description="Struktur kepengurusan sedang disiapkan dan akan ditampilkan di halaman ini." />
         ) : (
           <OrgChart members={members} />
         )}
-        <p className="text-xs text-stone-500">Catatan: nama pengurus di atas berasal dari database resmi dan dapat dikelola melalui dashboard admin.</p>
       </section>
     </div>
   );

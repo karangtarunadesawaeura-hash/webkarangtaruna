@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Archive } from "lucide-react";
 import { createClientSafe } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,9 @@ export default async function AgendaPage({
     }
   }
 
+  const showUpcoming = !status || status === "mendatang" || status === "berlangsung";
+  const showPast = !status || status === "selesai" || status === "dibatalkan";
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6">
       <SectionHeading eyebrow="Agenda" title="Agenda Kegiatan" description="Jadwal kegiatan mendatang dan arsip kegiatan yang telah dilaksanakan." />
@@ -48,8 +51,9 @@ export default async function AgendaPage({
         ))}
       </div>
 
+      {showUpcoming && (
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-extrabold">Kegiatan Mendatang</h2>
+        <h2 className="flex items-center gap-2 text-lg font-extrabold"><CalendarDays className="h-5 w-5 text-forest-700" /> Kegiatan Mendatang</h2>
         {upcoming.length === 0 ? (
           <EmptyState title="Belum ada kegiatan mendatang" description="Kegiatan yang membuka pendaftaran maupun yang terjadwal akan muncul di sini." />
         ) : (
@@ -66,9 +70,11 @@ export default async function AgendaPage({
           </div>
         )}
       </section>
+      )}
 
+      {showPast && (
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-extrabold">Kegiatan yang Telah Selesai</h2>
+        <h2 className="flex items-center gap-2 text-lg font-extrabold"><Archive className="h-5 w-5 text-forest-700" /> Kegiatan yang Telah Selesai</h2>
         {past.length === 0 ? (
           <EmptyState title="Belum ada arsip kegiatan" description="Kegiatan yang telah selesai akan diarsipkan di sini beserta dokumentasinya." />
         ) : (
@@ -84,6 +90,7 @@ export default async function AgendaPage({
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

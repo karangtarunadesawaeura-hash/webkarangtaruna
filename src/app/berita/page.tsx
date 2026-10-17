@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Newspaper } from "lucide-react";
+import { Search, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClientSafe } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeading, EmptyState } from "@/components/ui/state";
@@ -50,6 +50,12 @@ export default async function BeritaPage({
     return `/berita${qs ? `?${qs}` : ""}`;
   };
 
+  const windowSize = Math.min(7, totalPages);
+  const startPage = Math.max(1, Math.min(page - 3, totalPages - windowSize + 1));
+  const pageNumbers = Array.from({ length: windowSize }, (_, i) => startPage + i);
+  const shownFrom = (page - 1) * PER_PAGE + 1;
+  const shownTo = shownFrom + items.length - 1;
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6">
       <SectionHeading eyebrow="Kabar" title="Berita & Pengumuman" description="Ikuti kabar terbaru kegiatan dan pengumuman resmi Karang Taruna Desa Waeura." />
@@ -82,7 +88,7 @@ export default async function BeritaPage({
               <Link key={n.id} href={`/berita/${n.slug}`} className="group overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-sm transition-shadow hover:shadow-md">
                 {n.cover_image_url ? (
                   <div className="relative h-44 w-full overflow-hidden bg-stone-100">
-                    <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-contain" />
+                    <Image src={n.cover_image_url} alt={n.title} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                 ) : (
                   <div className="flex h-44 items-center justify-center bg-forest-50 text-forest-300"><Newspaper className="h-8 w-8" /></div>
@@ -100,12 +106,30 @@ export default async function BeritaPage({
           </div>
           {totalPages > 1 && (
             <nav aria-label="Pagination berita" className="flex items-center justify-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 7).map((p) => (
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} aria-label="Halaman sebelumnya" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-forest-900 ring-1 ring-forest-100 hover:bg-forest-50">
+                  <ChevronLeft className="h-4 w-4" />
+                </Link>
+              ) : (
+                <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-300 ring-1 ring-forest-100">
+                  <ChevronLeft className="h-4 w-4" />
+                </span>
+              )}
+              {pageNumbers.map((p) => (
                 <Link key={p} href={pageHref(p)} aria-current={p === page ? "page" : undefined} className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold ${p === page ? "bg-forest-900 text-white" : "bg-white text-forest-900 ring-1 ring-forest-100 hover:bg-forest-50"}`}>{p}</Link>
               ))}
+              {page < totalPages ? (
+                <Link href={pageHref(page + 1)} aria-label="Halaman berikutnya" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-forest-900 ring-1 ring-forest-100 hover:bg-forest-50">
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-300 ring-1 ring-forest-100">
+                  <ChevronRight className="h-4 w-4" />
+                </span>
+              )}
             </nav>
           )}
-          <p className="text-center text-xs text-stone-500">Menampilkan {items.length} dari {total} berita.</p>
+          <p className="text-center text-xs text-stone-500">Menampilkan {shownFrom}–{shownTo} dari {total} berita.</p>
         </>
       )}
     </div>

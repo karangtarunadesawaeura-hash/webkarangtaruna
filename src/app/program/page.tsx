@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { CalendarClock } from "lucide-react";
 import { createClientSafe } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +81,7 @@ export default async function ProgramPage({
                 </div>
                 <h2 className="font-bold leading-snug">{p.title}</h2>
                 <p className="text-sm text-stone-600 line-clamp-3">{truncate(p.description, 140) || "Deskripsi menyusul."}</p>
-                {p.schedule && <p className="text-xs font-semibold text-stone-500">Jadwal: {p.schedule}</p>}
+                {p.schedule && <p className="flex items-center gap-1.5 text-xs font-semibold text-stone-500"><CalendarClock className="h-3.5 w-3.5" /> Jadwal: {p.schedule}</p>}
               </CardContent>
             </Card>
           ))}

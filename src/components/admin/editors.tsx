@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { ExternalLink } from "lucide-react";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { UploadBox } from "./upload-box";
 import {
   upsertNewsAction, upsertProgramAction, upsertEventAction,
@@ -11,14 +15,16 @@ import {
   upsertAlbumAction, updateSettingsAction, upsertMembershipAction,
 } from "@/app/actions/admin";
 import { NEWS_CATEGORIES, PROGRAM_CATEGORIES } from "@/lib/constants";
+import { cn, formatTanggal, slugify } from "@/lib/utils";
 
 function useSubmit(
   fn: (id: string | null, fd: FormData) => Promise<{ ok: boolean; message: string }>,
   id: string | null,
-  redirectTo: string
+  redirectTo: string,
+  onSuccess?: () => void
 ) {
   const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,52 +33,255 @@ function useSubmit(
     startTransition(async () => {
       try {
         const res = await fn(id, fd);
-        setMsg(res.message);
+        setMsg({ ok: res.ok, text: res.message });
         if (res.ok) {
+          onSuccess?.();
           router.push(redirectTo);
           router.refresh();
         }
       } catch {
-        setMsg("Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi.");
+        setMsg({ ok: false, text: "Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi." });
       }
     });
   };
   return { msg, pending, submit };
 }
 
-function ImageUrlField({ name, defaultValue, label = "URL Gambar" }: { name: string; defaultValue?: string | null; label?: string }) {
+function ImageUrlField({ name, defaultValue, label = "URL Gambar", onValueChange }: { name: string; defaultValue?: string | null; label?: string; onValueChange?: (v: string) => void }) {
   const [url, setUrl] = useState(defaultValue ?? "");
+  const update = (v: string) => {
+    setUrl(v);
+    onValueChange?.(v);
+  };
   return (
     <div className="flex flex-col gap-2">
-      <Input label={label} name={name} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… atau unggah di bawah" />
-      <UploadBox onUploaded={setUrl} value={url} />
+      <Input label={label} name={name} value={url} onChange={(e) => update(e.target.value)} placeholder="https://… atau unggah di bawah" />
+      <UploadBox onUploaded={update} value={url} />
     </div>
   );
 }
 
 // ---------- NEWS ----------
-export function NewsEditor({ initial, id }: { initial?: Record<string, unknown> | null; id: string | null }) {
-  const { msg, pending, submit } = useSubmit(upsertNewsAction, id, "/admin/berita");
-  const g = (k: string) => (initial?.[k] as string) ?? "";
+type NewsPreview = {
+  title: string;
+  summary: string;
+  content: string;
+  cover: string;
+  category: string;
+};
+
+function ArticlePreview({ preview }: { preview: NewsPreview }) {
+  const paragraphs = preview.content.split(/\n\n+/).filter((p) => p.trim());
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
-      <Input label="Judul *" name="title" required defaultValue={g("title")} />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Slug (opsional — otomatis bila kosong)" name="slug" defaultValue={g("slug")} />
-        <Select label="Kategori *" name="category" defaultValue={g("category") || "Kegiatan"}>
-          {NEWS_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-        </Select>
+    <div className="flex flex-col gap-4 rounded-2xl border border-forest-100 bg-forest-50/50 p-5 sm:p-7">
+      <p className="text-xs font-bold uppercase tracking-wider text-stone-500">Pratinjau tampilan publik</p>
+      <article className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
+          <Badge tone="gray">{preview.category || "Kategori"}</Badge>
+          <span>{formatTanggal(new Date())}</span>
+        </div>
+        <h2 className="text-xl font-extrabold leading-tight tracking-tight text-forest-950 sm:text-2xl">
+          {preview.title || "Judul berita akan tampil di sini"}
+        </h2>
+        {preview.summary && <p className="text-sm leading-relaxed text-stone-600">{preview.summary}</p>}
+        {preview.cover && (
+          <div className="relative h-56 w-full overflow-hidden rounded-xl bg-stone-100 sm:h-72">
+            <Image src={preview.cover} alt="Pratinjau gambar sampul" fill sizes="(max-width:768px) 100vw, 640px" className="object-contain" unoptimized />
+          </div>
+        )}
+        {paragraphs.length > 0 ? (
+          <div className="text-[15px] leading-relaxed text-stone-800">
+            {paragraphs.map((p, i) => (
+              <p key={i} className="mb-4 whitespace-pre-line">{p}</p>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm italic text-stone-400">Isi artikel belum ditulis.</p>
+        )}
+      </article>
+    </div>
+  );
+}
+
+export function NewsEditor({ initial, id, publicHref }: { initial?: Record<string, unknown> | null; id: string | null; publicHref?: string | null }) {
+  const g = (k: string) => (initial?.[k] as string) ?? "";
+  const formRef = useRef<HTMLFormElement>(null);
+  const [tab, setTab] = useState<"tulis" | "pratinjau">("tulis");
+  const [dirty, setDirty] = useState(false);
+  const [slug, setSlug] = useState(g("slug"));
+  const [status, setStatus] = useState(g("status") || "draft");
+  const [preview, setPreview] = useState<NewsPreview>({
+    title: g("title"),
+    summary: g("summary"),
+    content: g("content"),
+    cover: g("cover_image_url"),
+    category: g("category") || "Kegiatan",
+  });
+  const { msg, pending, submit } = useSubmit(upsertNewsAction, id, "/admin/berita", () => setDirty(false));
+
+  const patch = (k: keyof NewsPreview) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setPreview((p) => ({ ...p, [k]: e.target.value }));
+
+  const words = preview.content.trim() ? preview.content.trim().split(/\s+/).length : 0;
+  const minutes = Math.max(1, Math.round(words / 200));
+  const publishedAt = g("published_at");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={submit}
+      onChange={() => setDirty(true)}
+      className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
+    >
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
+            <Input
+              label="Judul Berita *"
+              name="title"
+              required
+              defaultValue={g("title")}
+              onChange={patch("title")}
+              placeholder="Contoh: Kerja Bakti Bersih Desa Menyambut HUT RI"
+              className="h-12 text-base font-bold"
+              hint="5–200 karakter, tampil sebagai judul utama artikel."
+            />
+            <Input
+              label="Slug URL (opsional)"
+              name="slug"
+              value={slug}
+              onChange={(e) => setSlug(slugify(e.target.value))}
+              placeholder={slugify(preview.title) || "otomatis-dari-judul"}
+              hint={slug ? `Alamat publik: /berita/${slug}` : "Dikosongkan = otomatis dibuat dari judul."}
+            />
+            <div className="flex flex-col gap-1.5">
+              <Textarea
+                label="Ringkasan"
+                name="summary"
+                rows={3}
+                defaultValue={g("summary")}
+                onChange={patch("summary")}
+                placeholder="1–2 kalimat ringkas yang tampil di kartu berita dan hasil pencarian…"
+              />
+              <p className="text-right text-xs text-stone-500">{preview.summary.length}/500 karakter</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-forest-950">Isi Artikel *</span>
+                <div className="flex items-center gap-1 rounded-lg bg-forest-100 p-1" role="tablist" aria-label="Mode editor">
+                  {(["tulis", "pratinjau"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === t}
+                      onClick={() => setTab(t)}
+                      className={cn(
+                        "rounded-md px-3 py-1.5 text-xs font-bold capitalize transition-colors",
+                        tab === t ? "bg-white text-forest-900 shadow-sm" : "text-stone-600 hover:text-forest-900"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Textarea
+                name="content"
+                required
+                rows={16}
+                defaultValue={g("content")}
+                onChange={patch("content")}
+                placeholder="Tulis isi artikel di sini…"
+                className={cn("min-h-[380px] leading-relaxed", tab === "pratinjau" && "hidden")}
+              />
+              {tab === "pratinjau" && <ArticlePreview preview={preview} />}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
+                <span>Pisahkan paragraf dengan satu baris kosong agar rapi di halaman publik.</span>
+                <span>{words} kata · ±{minutes} menit baca</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <Input label="Ringkasan" name="summary" defaultValue={g("summary")} />
-      <Textarea label="Isi Artikel *" name="content" required rows={10} defaultValue={g("content")} />
-      <ImageUrlField name="cover_image_url" defaultValue={g("cover_image_url")} />
-      <Select label="Status *" name="status" defaultValue={g("status") || "draft"}>
-        <option value="draft">Draft (tidak terlihat publik)</option>
-        <option value="published">Published</option>
-        <option value="archived">Archived</option>
-      </Select>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
-      <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Berita"}</Button>
+
+      <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-5">
+            <h2 className="font-extrabold">Terbitkan</h2>
+            <Select label="Status *" name="status" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="draft">Draft — tersimpan, tidak tampil di publik</option>
+              <option value="published">Published — tampil di situs publik</option>
+              <option value="archived">Archived — disembunyikan dari publik</option>
+            </Select>
+            {publishedAt && <p className="text-xs text-stone-500">Terakhir diterbitkan: {formatTanggal(publishedAt)}</p>}
+            {msg && (
+              <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>
+                {msg.text}
+              </p>
+            )}
+            <Button type="submit" disabled={pending} size="lg" className="w-full">
+              {pending ? "Menyimpan…" : id ? "Simpan Perubahan" : "Simpan Berita"}
+            </Button>
+            {publicHref && status === "published" && (
+              <a href={publicHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-forest-700 hover:underline">
+                Lihat di Publik <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+            <p className="text-xs text-stone-500">Tip: tekan Ctrl+S untuk menyimpan.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-5">
+            <h2 className="font-extrabold">Gambar Sampul</h2>
+            <ImageUrlField name="cover_image_url" defaultValue={g("cover_image_url")} label="URL Gambar" onValueChange={(v) => setPreview((p) => ({ ...p, cover: v }))} />
+            <p className="text-xs text-stone-500">Rasio ideal 16:9 (mis. 1280×720). Tampil di kartu berita dan bagian atas artikel.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-2 p-5">
+            <h2 className="font-extrabold">Kategori</h2>
+            <Select name="category" aria-label="Kategori berita" value={preview.category} onChange={patch("category")}>
+              {NEWS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-forest-50/60">
+          <CardContent className="flex flex-col gap-2 p-5 text-xs text-stone-600">
+            <h2 className="text-sm font-extrabold text-forest-950">Panduan singkat</h2>
+            <ul className="flex list-disc flex-col gap-1 pl-4">
+              <li>Judul spesifik dan informatif (min. 5 karakter).</li>
+              <li>Ringkasan maks. 500 karakter untuk kartu berita.</li>
+              <li>Pisahkan paragraf dengan satu baris kosong.</li>
+              <li>Periksa tab Pratinjau sebelum menerbitkan.</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </aside>
     </form>
   );
 }
@@ -107,7 +316,7 @@ export function ProgramEditor({ initial, id }: { initial?: Record<string, unknow
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input type="checkbox" name="is_featured" defaultChecked={Boolean(initial?.is_featured)} className="h-4 w-4 accent-green-900" /> Tampilkan sebagai program unggulan
       </label>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Program"}</Button>
     </form>
   );
@@ -143,7 +352,7 @@ export function EventEditor({ initial, id }: { initial?: Record<string, unknown>
           <input type="checkbox" name="registration_open" defaultChecked={Boolean(initial?.registration_open)} className="h-4 w-4 accent-green-900" /> Buka pendaftaran
         </label>
       </div>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Kegiatan"}</Button>
     </form>
   );
@@ -196,7 +405,7 @@ export function BoardEditor({ initial, id, divisions }: { initial?: Record<strin
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input type="checkbox" name="is_active" defaultChecked={initial?.is_active !== false} className="h-4 w-4 accent-green-900" /> Aktif (tampil di publik)
       </label>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Pengurus"}</Button>
     </form>
   );
@@ -215,7 +424,7 @@ export function ReportEditor({ initial, id }: { initial?: Record<string, unknown
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input type="checkbox" name="is_public" defaultChecked={initial?.is_public !== false} className="h-4 w-4 accent-green-900" /> Publikasikan ke publik
       </label>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Laporan"}</Button>
     </form>
   );
@@ -234,7 +443,7 @@ export function AnnouncementEditor({ initial, id }: { initial?: Record<string, u
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_pinned" defaultChecked={Boolean(initial?.is_pinned)} className="h-4 w-4 accent-green-900" /> Sematkan</label>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_public" defaultChecked={initial?.is_public !== false} className="h-4 w-4 accent-green-900" /> Publik</label>
       </div>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Pengumuman"}</Button>
     </form>
   );
@@ -252,7 +461,7 @@ export function AlbumEditor({ initial, id }: { initial?: Record<string, unknown>
         <Input label="Tanggal kegiatan" name="event_date" type="date" defaultValue={g("event_date")?.slice(0, 10)} />
         <ImageUrlField label="URL Sampul" name="cover_image_url" defaultValue={g("cover_image_url")} />
       </div>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Album"}</Button>
     </form>
   );
@@ -285,7 +494,7 @@ export function MemberEditor({ initial, id }: { initial?: Record<string, unknown
         </Select>
         <Input label="Catatan Internal" name="notes" defaultValue={g("notes")} placeholder="Hanya dibaca admin" />
       </div>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Data Anggota"}</Button>
     </form>
   );
@@ -294,7 +503,7 @@ export function MemberEditor({ initial, id }: { initial?: Record<string, unknown
 // ---------- SETTINGS ----------
 export function SettingsEditor({ initial }: { initial?: Record<string, unknown> | null }) {
   const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const g = (k: string) => (initial?.[k] as string) ?? "";
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -303,10 +512,10 @@ export function SettingsEditor({ initial }: { initial?: Record<string, unknown> 
     startTransition(async () => {
       try {
         const res = await updateSettingsAction(fd);
-        setMsg(res.message);
+        setMsg({ ok: res.ok, text: res.message });
         if (res.ok) router.refresh();
       } catch {
-        setMsg("Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi.");
+        setMsg({ ok: false, text: "Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi." });
       }
     });
   };
@@ -336,7 +545,7 @@ export function SettingsEditor({ initial }: { initial?: Record<string, unknown> 
         <Input label="YouTube URL" name="youtube" defaultValue={g("youtube")} />
         <Input label="TikTok URL" name="tiktok" defaultValue={g("tiktok")} />
       </div>
-      {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={cn("rounded-lg p-3 text-sm font-semibold", msg.ok ? "bg-forest-100 text-forest-800" : "bg-red-50 text-red-700")}>{msg.text}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Pengaturan"}</Button>
     </form>
   );

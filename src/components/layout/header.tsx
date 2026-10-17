@@ -19,6 +19,9 @@ export function Header({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
   return (
     <header className="sticky top-0 z-50 border-b border-forest-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -31,10 +34,10 @@ export function Header({
             <Link
               key={link.href}
               href={link.href}
-              aria-current={pathname === link.href ? "page" : undefined}
+              aria-current={isActive(link.href) ? "page" : undefined}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                pathname === link.href
+                isActive(link.href)
                   ? "bg-forest-900 text-white"
                   : "text-forest-900 hover:bg-forest-50"
               )}
@@ -72,10 +75,10 @@ export function Header({
                 <Link
                   href={link.href}
                   onClick={() => setOpen(false)}
-                  aria-current={pathname === link.href ? "page" : undefined}
+                  aria-current={isActive(link.href) ? "page" : undefined}
                   className={cn(
                     "block rounded-lg px-3 py-2.5 text-sm font-semibold",
-                    pathname === link.href
+                    isActive(link.href)
                       ? "bg-forest-900 text-white"
                       : "text-forest-900 hover:bg-forest-50"
                   )}

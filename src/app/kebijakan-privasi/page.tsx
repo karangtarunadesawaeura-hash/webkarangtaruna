@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Kebijakan Privasi" };
 export default function KebijakanPrivasiPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-12 sm:px-6">
-      <SectionHeading align="left" eyebrow="Privasi" title="Kebijakan Privasi" description="Terakhir diperbarui: 2026. Dokumen ini dapat disesuaikan pengurus melalui dashboard." />
+      <SectionHeading align="left" eyebrow="Privasi" title="Kebijakan Privasi" description="Terakhir diperbarui: 2026." />
       <Card><CardContent className="flex flex-col gap-4 p-6 text-sm leading-relaxed text-stone-700">
         <section><h2 className="font-bold text-forest-950">1. Data yang kami kumpulkan</h2><p>Kami meminimalkan pengumpulan data pribadi: nama, alamat/dusun, kontak (HP/email), tanggal lahir (opsional), minat dan bidang yang diminati, serta pesan yang Anda kirim. Kami tidak mengumpulkan data sensitif yang tidak diperlukan.</p></section>
         <section><h2 className="font-bold text-forest-950">2. Tujuan penggunaan</h2><p>Data pendaftaran anggota hanya untuk pendataan dan verifikasi keanggotaan. Pesan kontak hanya untuk menindaklanjuti pertanyaan Anda. Data pendaftar tidak ditampilkan kepada publik.</p></section>
