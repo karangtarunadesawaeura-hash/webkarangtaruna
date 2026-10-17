@@ -45,7 +45,7 @@ function ImageUrlField({ name, defaultValue, label = "URL Gambar" }: { name: str
   return (
     <div className="flex flex-col gap-2">
       <Input label={label} name={name} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… atau unggah di bawah" />
-      <UploadBox onUploaded={setUrl} />
+      <UploadBox onUploaded={setUrl} value={url} />
     </div>
   );
 }

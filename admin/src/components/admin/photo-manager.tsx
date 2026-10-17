@@ -38,7 +38,7 @@ export function PhotoManager({ albumId, photos }: { albumId: string; photos: { i
     <div className="flex flex-col gap-4">
       <form onSubmit={add} className="flex flex-col gap-3 rounded-2xl border border-forest-100 p-4">
         <h2 className="font-bold">Tambah Foto</h2>
-        <UploadBox onUploaded={setUrl} />
+        <UploadBox onUploaded={setUrl} value={url} />
         <Input label="URL Gambar *" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… (otomatis terisi setelah upload)" required />
         <Input label="Caption" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Contoh: Gotong royong, Juni 2026" />
         <Button type="submit" disabled={pending || !url}>{pending ? "Menyimpan…" : "Tambah Foto"}</Button>

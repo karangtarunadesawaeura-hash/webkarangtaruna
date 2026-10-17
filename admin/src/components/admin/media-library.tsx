@@ -5,15 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Check, Copy, Search, Trash2 } from "lucide-react";
 import { UploadBox } from "./upload-box";
-import { checkMediaUsageAction, deleteStorageFileAction, type MediaUsage } from "@/app/actions/admin";
+import { checkMediaUsageAction, deleteStorageFileAction, type MediaItem, type MediaUsage } from "@/app/actions/admin";
 
-export interface MediaItem {
-  path: string;
-  url: string;
-  name: string;
-  size: number;
-  createdAt: string;
-}
+export type { MediaItem };
 
 function formatBytes(n: number): string {
   if (!n || n <= 0) return "—";
@@ -98,7 +92,7 @@ export function MediaLibrary({ items }: { items: MediaItem[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <UploadBox onUploaded={() => router.refresh()} />
+      <UploadBox onUploaded={() => router.refresh()} picker={false} />
       <div className="flex flex-wrap items-center gap-3">
         <label className="relative flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
