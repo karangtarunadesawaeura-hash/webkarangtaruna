@@ -25,11 +25,15 @@ function useSubmit(
     setMsg(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await fn(id, fd);
-      setMsg(res.message);
-      if (res.ok) {
-        router.push(redirectTo);
-        router.refresh();
+      try {
+        const res = await fn(id, fd);
+        setMsg(res.message);
+        if (res.ok) {
+          router.push(redirectTo);
+          router.refresh();
+        }
+      } catch {
+        setMsg("Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi.");
       }
     });
   };
@@ -270,9 +274,13 @@ export function SettingsEditor({ initial }: { initial?: Record<string, unknown> 
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await updateSettingsAction(fd);
-      setMsg(res.message);
-      if (res.ok) router.refresh();
+      try {
+        const res = await updateSettingsAction(fd);
+        setMsg(res.message);
+        if (res.ok) router.refresh();
+      } catch {
+        setMsg("Gagal menyimpan — muat ulang halaman (Ctrl+Shift+R) lalu coba lagi.");
+      }
     });
   };
   return (

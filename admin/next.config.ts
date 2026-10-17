@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  experimental: {
+    // Upload gambar divalidasi maks 5 MB di server action; default Next 1 MB.
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     // Sama seperti public: izinkan gambar dari Supabase Storage.
     remotePatterns: [
