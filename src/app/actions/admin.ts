@@ -761,3 +761,74 @@ export async function uploadFileAction(formData: FormData): Promise<{ ok: boolea
     return { ok: false, message: e instanceof Error ? e.message : "Upload gagal." };
   }
 }
+
+// ---------- HAPUS berkas di Storage publik (menu Media Upload) ----------
+export async function deleteStorageFileAction(path: string): Promise<ActionResult> {
+  try {
+    const user = await requireAdmin();
+    const clean = String(path ?? "").trim();
+    if (!clean || clean.includes("..") || clean.includes("\\") || clean.startsWith("/")) {
+      return { ok: false, message: "Path berkas tidak valid." };
+    }
+    const supabase = await createClient();
+    const { error } = await supabase.storage.from("public-assets").remove([clean]);
+    if (error) throw error;
+    await logActivity(supabase, user.id, "delete", "storage:public-assets", clean);
+    revalidatePath("/admin/media");
+    return { ok: true, message: "Berkas dihapus." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Gagal menghapus berkas." };
+  }
+}
+
+// ---------- CEK PEMAKAIAN foto sebelum dihapus (menu Media Upload) ----------
+export interface MediaUsage {
+  label: string;
+  field: string;
+  title: string;
+}
+
+export async function checkMediaUsageAction(url: string): Promise<{ ok: boolean; message: string; usages: MediaUsage[] }> {
+  try {
+    await requireAdmin();
+    const clean = String(url ?? "").trim();
+    if (!clean) return { ok: false, message: "URL tidak valid.", usages: [] };
+    const supabase = await createClient();
+    const usages: MediaUsage[] = [];
+
+    const pushRows = (label: string, field: string, rows: ReadonlyArray<unknown> | null | undefined, titleCol: string) => {
+      for (const r of rows ?? []) {
+        const val = (r as Record<string, unknown>)[titleCol];
+        usages.push({ label, field, title: String(val ?? "").trim() || "Tanpa judul" });
+      }
+    };
+
+    const [settings, news, events, programs, albums, photos, members, reports] = await Promise.all([
+      supabase.from("organization_settings").select("org_name,logo_url,hero_image_url").limit(1),
+      supabase.from("news").select("id,title").eq("cover_image_url", clean).limit(3),
+      supabase.from("events").select("id,title").eq("image_url", clean).limit(3),
+      supabase.from("programs").select("id,title").eq("image_url", clean).limit(3),
+      supabase.from("gallery_albums").select("id,title").eq("cover_image_url", clean).limit(3),
+      supabase.from("gallery_photos").select("id,caption").eq("image_url", clean).limit(3),
+      supabase.from("board_members").select("id,name").eq("photo_url", clean).limit(3),
+      supabase.from("reports").select("id,title").eq("document_url", clean).limit(3),
+    ]);
+
+    const row = settings.data?.[0];
+    if (row) {
+      if (row.logo_url === clean) usages.push({ label: "Pengaturan Situs", field: "Logo", title: row.org_name });
+      if (row.hero_image_url === clean) usages.push({ label: "Pengaturan Situs", field: "Foto Hero", title: row.org_name });
+    }
+    pushRows("Berita", "Sampul", news.data, "title");
+    pushRows("Agenda", "Gambar", events.data, "title");
+    pushRows("Program Kerja", "Gambar", programs.data, "title");
+    pushRows("Galeri (album)", "Sampul", albums.data, "title");
+    pushRows("Galeri (foto)", "Foto", photos.data, "caption");
+    pushRows("Pengurus", "Foto", members.data, "name");
+    pushRows("Laporan", "Dokumen", reports.data, "title");
+
+    return { ok: true, message: `${usages.length} pemakaian ditemukan.`, usages };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Gagal memeriksa pemakaian.", usages: [] };
+  }
+}

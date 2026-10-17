@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Newspaper, CalendarDays, Briefcase, Images,
-  Users, FileText, Megaphone, Settings, LogOut, Inbox, ShieldCheck, Menu, X,
+  FolderOpen, Users, FileText, Megaphone, Settings, LogOut, Inbox, ShieldCheck, Menu, X,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const MENU: { href: string; label: string; icon: React.ReactNode; roles: UserRol
   { href: "/berita", label: "Berita", icon: <Newspaper className="h-4 w-4" />, roles: ["super_admin", "admin", "editor"] },
   { href: "/agenda", label: "Agenda", icon: <CalendarDays className="h-4 w-4" />, roles: ["super_admin", "admin", "editor"] },
   { href: "/galeri", label: "Galeri", icon: <Images className="h-4 w-4" />, roles: ["super_admin", "admin", "editor"] },
+  { href: "/media", label: "Media Upload", icon: <FolderOpen className="h-4 w-4" />, roles: ["super_admin", "admin", "editor"] },
   { href: "/pengurus", label: "Pengurus", icon: <Users className="h-4 w-4" />, roles: ["super_admin", "admin"] },
   { href: "/pengguna", label: "Pengguna", icon: <ShieldCheck className="h-4 w-4" />, roles: ["super_admin"] },
   { href: "/pengumuman", label: "Pengumuman", icon: <Megaphone className="h-4 w-4" />, roles: ["super_admin", "admin", "editor"] },
