@@ -36,11 +36,11 @@ function useSubmit(
   return { msg, pending, submit };
 }
 
-function ImageUrlField({ name, defaultValue }: { name: string; defaultValue?: string | null }) {
+function ImageUrlField({ name, defaultValue, label = "URL Gambar" }: { name: string; defaultValue?: string | null; label?: string }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   return (
     <div className="flex flex-col gap-2">
-      <Input label="URL Gambar" name={name} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… atau unggah di bawah" />
+      <Input label={label} name={name} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… atau unggah di bawah" />
       <UploadBox onUploaded={setUrl} />
     </div>
   );
@@ -246,9 +246,8 @@ export function AlbumEditor({ initial, id }: { initial?: Record<string, unknown>
       <Textarea label="Deskripsi" name="description" rows={3} defaultValue={g("description")} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Tanggal kegiatan" name="event_date" type="date" defaultValue={g("event_date")?.slice(0, 10)} />
-        <Input label="URL Sampul" name="cover_image_url" defaultValue={g("cover_image_url")} />
+        <ImageUrlField label="URL Sampul" name="cover_image_url" defaultValue={g("cover_image_url")} />
       </div>
-      <UploadBox onUploaded={() => {}} />
       {msg && <p role="status" className="rounded-lg bg-forest-50 p-3 text-sm font-semibold">{msg}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Album"}</Button>
     </form>
@@ -315,10 +314,9 @@ export function SettingsEditor({ initial }: { initial?: Record<string, unknown> 
       <Textarea label="Misi (satu per baris)" name="mission" rows={5} defaultValue={g("mission")} />
       <Textarea label="Tujuan" name="objectives" rows={4} defaultValue={g("objectives")} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="URL Logo" name="logo_url" defaultValue={g("logo_url")} />
-        <Input label="URL Foto Hero" name="hero_image_url" defaultValue={g("hero_image_url")} />
+        <ImageUrlField label="URL Logo" name="logo_url" defaultValue={g("logo_url")} />
+        <ImageUrlField label="URL Foto Hero" name="hero_image_url" defaultValue={g("hero_image_url")} />
       </div>
-      <UploadBox onUploaded={() => {}} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Alamat" name="address" defaultValue={g("address")} />
         <Input label="Periode Kepengurusan" name="leadership_period" defaultValue={g("leadership_period")} />
