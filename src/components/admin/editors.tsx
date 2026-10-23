@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ExternalLink } from "lucide-react";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { UploadBox } from "./upload-box";
+import { BoldIcon, ItalicIcon, ExternalLink } from "lucide-react";
 import {
   upsertNewsAction, upsertProgramAction, upsertEventAction,
   upsertBoardMemberAction, upsertReportAction, upsertAnnouncementAction,
@@ -47,6 +47,69 @@ function useSubmit(
   return { msg, pending, submit };
 }
 
+const [activeFormat, setActiveFormat] = useState<string | null>(null);
+
+function applyFormatToSelection(format: string) {
+  return () => {
+    const textarea = document.activeElement as HTMLTextAreaElement;
+    if (!textarea || !textarea.value) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    let insertText = "";
+    
+    switch (format) {
+      case "bold":
+        insertText = selectedText ? `**${selectedText}**` : "**";
+        break;
+      case "italic":
+        insertText = selectedText ? `*${selectedText}*` : "*";
+        break;
+      case "justify":
+        textarea.focus();
+        return;
+      case "numbered_list":
+        insertText = selectedText ? `\n1. ${selectedText}` : "\n1. ";
+        break;
+      case "icon":
+        insertText = selectedText ? `📝 ${selectedText}` : "📝 ";
+        break;
+      case "header_h2":
+        insertText = selectedText ? `**${selectedText}**` : "**Header**";
+        break;
+      case "header_h3":
+        insertText = selectedText ? `*${selectedText}*` : "*Sub-heading*";
+        break;
+      case "blockquote":
+        insertText = selectedText ? `> ${selectedText}` : "> ";
+        break;
+      case "link":
+        insertText = selectedText ? `[${selectedText}](url)` : `[text](url)`;
+        break;
+      case "hr":
+        insertText = "---\n";
+        break;
+      default:
+        insertText = selectedText;
+    }
+    
+    if (insertText !== "") {
+      textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
+      textarea.selectionStart = start + insertText.length;
+      textarea.selectionEnd = start + insertText.length;
+    }
+    textarea.focus();
+  };
+}
+
+function handleContentFocus(e: React.FocusEvent<HTMLTextAreaElement>) {
+  const textarea = e.target;
+  // Reset active format when clicking into the textarea
+  setActiveFormat(null);
+}
+
 function ImageUrlField({ name, defaultValue, label = "URL Gambar", onValueChange }: { name: string; defaultValue?: string | null; label?: string; onValueChange?: (v: string) => void }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const update = (v: string) => {
@@ -70,6 +133,22 @@ type NewsPreview = {
   category: string;
 };
 
+function renderContentText(content: string) {
+  // Convert formatting markers to HTML
+  let html = content
+    // Bold: **text** -> <strong className="font-bold">text</strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong className="font-bold">$1</strong>')
+    // Italic: *text* -> <em className="italic">text</em>
+    .replace(/\*(.+?)\*/g, '<em className="italic">$1</em>')
+    // Numbered list items: 1. text -> <li>text</li> (handled by prose or manual)
+    .replace(/^(\d+\. )/gm, '<li>$1</li>')
+    // Wrap list items in ol if present
+    .replace(/<li>/g, '<ol><li>')
+    .replace(/<\/li>$/g, '</li></ol>');
+
+  return html;
+}
+
 function ArticlePreview({ preview }: { preview: NewsPreview }) {
   const paragraphs = preview.content.split(/\n\n+/).filter((p) => p.trim());
   return (
@@ -92,7 +171,7 @@ function ArticlePreview({ preview }: { preview: NewsPreview }) {
         {paragraphs.length > 0 ? (
           <div className="text-[15px] leading-relaxed text-stone-800">
             {paragraphs.map((p, i) => (
-              <p key={i} className="mb-4 whitespace-pre-line">{p}</p>
+              <p key={i} className="mb-4 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: renderContentText(p) }} />
             ))}
           </div>
         ) : (
@@ -106,6 +185,7 @@ function ArticlePreview({ preview }: { preview: NewsPreview }) {
 export function NewsEditor({ initial, id, publicHref }: { initial?: Record<string, unknown> | null; id: string | null; publicHref?: string | null }) {
   const g = (k: string) => (initial?.[k] as string) ?? "";
   const formRef = useRef<HTMLFormElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [tab, setTab] = useState<"tulis" | "pratinjau">("tulis");
   const [dirty, setDirty] = useState(false);
   const [slug, setSlug] = useState(g("slug"));
@@ -187,6 +267,81 @@ export function NewsEditor({ initial, id, publicHref }: { initial?: Record<strin
               <p className="text-right text-xs text-stone-500">{preview.summary.length}/500 karakter</p>
             </div>
             <div className="flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Bold (Ctrl+B)"
+                  onClick={applyFormatToSelection("bold")}
+                >
+                  <BoldIcon className="h-3.5 w-3.5 mr-1" /> Bold
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Italic (Ctrl+I)"
+                  onClick={applyFormatToSelection("italic")}
+                >
+                  <ItalicIcon className="h-3.5 w-3.5 mr-1" /> Italic
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Justify"
+                  onClick={applyFormatToSelection("justify")}
+                >
+                  Justify
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Numbered List"
+                  onClick={applyFormatToSelection("numbered_list")}
+                >
+                  Nomor
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Header H2"
+                  onClick={applyFormatToSelection("header_h2")}
+                >
+                  H2
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Header H3"
+                  onClick={applyFormatToSelection("header_h3")}
+                >
+                  H3
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Blockquote"
+                  onClick={applyFormatToSelection("blockquote")}
+                >
+                  Blockquote
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Link"
+                  onClick={applyFormatToSelection("link")}
+                >
+                  Link
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md bg-forest-100 px-2.5 py-1.5 text-xs font-semibold text-forest-800 hover:bg-forest-200 transition-colors"
+                  title="Horizontal Rule"
+                  onClick={applyFormatToSelection("hr")}
+                >
+                  HR
+                </button>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-forest-950">Isi Artikel *</span>
                 <div className="flex items-center gap-1 rounded-lg bg-forest-100 p-1" role="tablist" aria-label="Mode editor">
@@ -215,6 +370,7 @@ export function NewsEditor({ initial, id, publicHref }: { initial?: Record<strin
                 onChange={patch("content")}
                 placeholder="Tulis isi artikel di sini…"
                 className={cn("min-h-[380px] leading-relaxed", tab === "pratinjau" && "hidden")}
+                onFocus={handleContentFocus}
               />
               {tab === "pratinjau" && <ArticlePreview preview={preview} />}
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
