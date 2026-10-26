@@ -47,8 +47,6 @@ function useSubmit(
   return { msg, pending, submit };
 }
 
-const [activeFormat, setActiveFormat] = useState<string | null>(null);
-
 function applyFormatToSelection(format: string) {
   return () => {
     const textarea = document.activeElement as HTMLTextAreaElement;
@@ -104,12 +102,6 @@ function applyFormatToSelection(format: string) {
   };
 }
 
-function handleContentFocus(e: React.FocusEvent<HTMLTextAreaElement>) {
-  const textarea = e.target;
-  // Reset active format when clicking into the textarea
-  setActiveFormat(null);
-}
-
 function ImageUrlField({ name, defaultValue, label = "URL Gambar", onValueChange }: { name: string; defaultValue?: string | null; label?: string; onValueChange?: (v: string) => void }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const update = (v: string) => {
@@ -135,7 +127,7 @@ type NewsPreview = {
 
 function renderContentText(content: string) {
   // Convert formatting markers to HTML
-  let html = content
+  const html = content
     // Bold: **text** -> <strong className="font-bold">text</strong>
     .replace(/\*\*(.+?)\*\*/g, '<strong className="font-bold">$1</strong>')
     // Italic: *text* -> <em className="italic">text</em>
@@ -185,7 +177,6 @@ function ArticlePreview({ preview }: { preview: NewsPreview }) {
 export function NewsEditor({ initial, id, publicHref }: { initial?: Record<string, unknown> | null; id: string | null; publicHref?: string | null }) {
   const g = (k: string) => (initial?.[k] as string) ?? "";
   const formRef = useRef<HTMLFormElement>(null);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [tab, setTab] = useState<"tulis" | "pratinjau">("tulis");
   const [dirty, setDirty] = useState(false);
   const [slug, setSlug] = useState(g("slug"));
@@ -370,7 +361,6 @@ export function NewsEditor({ initial, id, publicHref }: { initial?: Record<strin
                 onChange={patch("content")}
                 placeholder="Tulis isi artikel di sini…"
                 className={cn("min-h-[380px] leading-relaxed", tab === "pratinjau" && "hidden")}
-                onFocus={handleContentFocus}
               />
               {tab === "pratinjau" && <ArticlePreview preview={preview} />}
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
