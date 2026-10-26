@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { CalendarDays, ArrowLeft } from "lucide-react";
 import { createClientSafe } from "@/lib/supabase/server";
+import { ArticleContent } from "@/components/news/article-content";
 import { Badge } from "@/components/ui/badge";
 import { formatTanggal } from "@/lib/utils";
 import { getSiteUrl } from "@/lib/env";
@@ -72,11 +73,7 @@ export default async function BeritaDetailPage({
           <Image src={article.cover_image_url} alt={article.title} fill sizes="100vw" className="object-contain" priority />
         </div>
       )}
-      <div className="text-[15px] leading-relaxed text-stone-800">
-        {(article.content ?? "").split(/\n\n+/).map((p, i) => (
-          <p key={i} className="mb-4 whitespace-pre-line">{p}</p>
-        ))}
-      </div>
+      <ArticleContent content={article.content ?? ""} className="text-[15px]" />
       <div className="border-t border-forest-100 pt-6">
         <Link href="/berita" className="inline-flex w-fit items-center gap-1 text-sm font-bold text-forest-700 hover:underline">
           <ArrowLeft className="h-4 w-4" /> Kembali ke daftar berita

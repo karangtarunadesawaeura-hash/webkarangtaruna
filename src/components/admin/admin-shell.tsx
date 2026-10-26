@@ -52,7 +52,7 @@ export function AdminShell({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 lg:flex-row">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 lg:flex-row">
       <button
         type="button"
         className="inline-flex w-fit items-center gap-2 rounded-lg border border-forest-100 bg-white px-3 py-2 text-sm font-bold lg:hidden"

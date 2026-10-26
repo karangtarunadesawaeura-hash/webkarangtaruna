@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Proyek admin lama memiliki konfigurasi sendiri; jangan lint artefaknya dari root.
+    "admin/**",
   ]),
 ]);
 
